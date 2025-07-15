@@ -1,1 +1,1 @@
-export const DB_NAME = "DB_CONNECT" 
+export const DB_NAME = "MyCollection" 
