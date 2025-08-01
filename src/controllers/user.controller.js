@@ -2,7 +2,8 @@ import { asyncHandler } from '../utils/asyncHandler.js';
 import {ApiError} from "../utils/ApiError.js";
 import {User} from "../models/user.model.js";
 import {uploadCloudinary} from "../utils/cloudnary.js";
-import {ApiResponse} from "../utils/ApiResponse.js"
+import {ApiResponse} from "../utils/ApiResponse.js";
+import jwt from "jsonwebtoken"
 
 const GenarateAccessandRefrreshTokens = async (userId) => {
     try {
@@ -188,7 +189,48 @@ const logoutUser = asyncHandler(async(req,res) => {
     .json(new ApiResponse(200,{},"User LoggedOut Successfully"))
 })
 
-export {registerUser , LoginUser , logoutUser}
+const refreshAccessToken = asyncHandler(async (req,res) => {
+    const incomingRefreshToken = req.cookies.refreshToken || req.body.refreshToken;
+    if(!incomingRefreshToken){
+        throw new ApiError(401,"Unauthorised request")
+    }
+
+    try {
+        const decodedToken = jwt.verify(incomingRefreshToken , process.env.REFRESH_TOKEN_SECRET);
+        const user = await User.findById(decodedToken?._id);
+        if(!user){
+            throw new ApiError(401,"Invalid Refresh Token")
+        }
+    
+        if(incomingRefreshToken !== user?.refreshToken){
+            throw new ApiError(401,"Refresh Token is used or expired");
+        }
+    
+        const options = {
+            httpOnly:true,
+            secure:true
+        }
+    
+        const {newaccessToken , newrefreshToken} = await GenarateAccessandRefrreshTokens(user._id);
+    
+        return res
+        .status(200)
+        .cookie("accesToken",newaccessToken , options)
+        .cookie("refreshToken",newrefreshToken , options)
+        .json(
+            new ApiResponse(
+                200,
+                {newaccessToken , newrefreshToken},
+                "AccessToken refreshed"
+            )
+        )
+    } catch (error) {
+        throw new ApiError(401, error?.message || "Invalid refresh token")
+    }
+
+})
+
+export {registerUser , LoginUser , logoutUser , refreshAccessToken}
 
 
 // just checking git
