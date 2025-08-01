@@ -7,13 +7,13 @@ import {ApiResponse} from "../utils/ApiResponse.js"
 const GenarateAccessandRefrreshTokens = async (userId) => {
     try {
         const user = await User.findById(userId);
-        const accesstoken = user.generateAcessToken();
+        const accessToken = user.generateAccessToken();
         const refreshToken = user.generateRefreshToken();
 
         user.refreshToken = refreshToken;
         await user.save({validateBeforeSave: false});
 
-        return {accesstoken,refreshToken};
+        return {accessToken,refreshToken};
 
     } catch (error) {
         throw new ApiError(500, "Something went wrong while genarating access and refresh token.");
@@ -104,12 +104,12 @@ const registerUser = asyncHandler(async (req,res) => {
 
 })
 
-const LoginUser = asyncHandler(async () => {
+const LoginUser = asyncHandler(async (req,res) => {
 
     // req.body -> data
 
     const {email,username,password} = req.body;
-    if(!username || !email){
+    if(!(username || email)){
         throw new ApiError (400 , "username or email required.");
     }
 
@@ -155,7 +155,7 @@ const LoginUser = asyncHandler(async () => {
         new ApiResponse(
             200,
             {
-                user:logged , accessToken , refreshToken
+                user:loggedInUser , accessToken , refreshToken
             },
             "user logged in succesfully"
         )
